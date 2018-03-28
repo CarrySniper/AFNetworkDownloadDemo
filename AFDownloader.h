@@ -1,0 +1,93 @@
+//
+//  AFDownloader.h
+//  AFNetworkDownloadDemo
+//
+//  Created by CJQ on 2018/3/7.
+//  Copyright © 2018年 CJQ. All rights reserved.
+//
+
+#import <Foundation/Foundation.h>
+#import <AFNetworking/AFNetworking.h>
+#import "AFDownloadObject.h"
+
+/** 下载完成（成功／失败）Block */
+typedef void (^CLDownloaderBlock)(AFDownloadObject *object);
+
+@interface AFDownloader : NSObject
+
+/** 会话对象 */
+@property (nonatomic, strong) AFURLSessionManager *sessionManager;
+/** 最大并发数，0为不限制，默认3 */
+@property (nonatomic, assign) NSInteger maxConcurrentCount;
+
++ (instancetype)manager;
+
+/**
+ 某条下载数据
+ */
+- (NSDictionary *)downloadObjectWithUrlString:(NSString *)urlString;
+
+/**
+ 下载列表数据
+ */
+- (NSArray *)downloadList;
+
+/**
+ 下载文件
+ 
+ @param urlString URL链接
+ @param directory 文件下载完成保存的目录，如果为nil，默认保存到“.../Library/Caches/CLDownloader”
+ @param state 回调-下载状态
+ @param progress 回调-下载进度
+ @param completion 回调-下载完成
+ */
+- (void)downloadURL:(NSString *)urlString
+          directory:(NSString *)directory
+              state:(CLDownloadStateBlock)state
+           progress:(CLDownloadProgressBlock) progress
+         completion:(CLDownloadCompletionBlock)completion;
+
+
+#pragma mark - Downloads
+/**
+ 挂起指定下载任务
+ */
+- (void)suspendDownload:(NSString *)urlString;
+
+/**
+ 挂起全部下载任务
+ */
+- (void)suspendAllDownloads;
+
+/**
+ 恢复指定下载任务
+ */
+- (void)resumeDownload:(NSString *)urlString;
+
+/**
+ 恢复全部下载任务
+ */
+- (void)resumeAllDownloads;
+
+/**
+ 删除指定下载任务
+ */
+- (void)deleteDownload:(NSString *)urlString;
+
+/**
+ 删除全部下载任务
+ */
+- (void)deleteAllDownloads;
+
+#pragma mark - Files
+/**
+ 文件绝对路径
+ */
+- (NSString *)fileAbsolutePath:(NSString *)urlString;
+
+/**
+ 格式化文件大小
+ */
+- (NSString *)formatByteCount:(long long)size;
+
+@end
