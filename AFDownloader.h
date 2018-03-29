@@ -10,25 +10,39 @@
 #import <AFNetworking/AFNetworking.h>
 #import "AFDownloadObject.h"
 
+#define CLCachesDirectory       [[AFDownloader manager] cachesDirectory]  // 缓存路径
+#define CLFileName(URL)         [URL lastPathComponent] // 根据URL获取文件名，xxx.zip
+#define CLFilePath(URL)         [CLCachesDirectory stringByAppendingPathComponent:CLFileName(URL)]
+#define CLFilesPlistPath        [CLCachesDirectory stringByAppendingPathComponent:@"CLFilesSize.plist"]
+
 /** 下载完成（成功／失败）Block */
 typedef void (^CLDownloaderBlock)(AFDownloadObject *object);
 
 @interface AFDownloader : NSObject
 
-/** 会话对象 */
-@property (nonatomic, strong) AFURLSessionManager *sessionManager;
+
 /** 最大并发数，0为不限制，默认3 */
 @property (nonatomic, assign) NSInteger maxConcurrentCount;
 
+// 内部属性，不需设置
+@property (nonatomic, strong) AFURLSessionManager *sessionManager;                              // 会话对象
+@property (nonatomic, strong) NSFileManager *fileManager;                                       // 文件管理
+@property (nonatomic, strong) NSString *cachesDirectory;                                        // 文件目录
+@property (nonatomic, strong) NSMutableDictionary<NSString *, AFDownloadObject *> *downloadsSet;// 下载集合
+@property (nonatomic, strong) NSMutableArray<AFDownloadObject *> *downloadingArray;             // 下载中队列
+@property (nonatomic, strong) NSMutableArray<AFDownloadObject *> *waitingArray;                 // 待下载队列
+
+#pragma mark - Class
 + (instancetype)manager;
 
+
 /**
- 某条下载数据
+ 获取某条下载数据
  */
 - (NSDictionary *)downloadObjectWithUrlString:(NSString *)urlString;
 
 /**
- 下载列表数据
+ 获取下载列表数据
  */
 - (NSArray *)downloadList;
 
@@ -36,7 +50,7 @@ typedef void (^CLDownloaderBlock)(AFDownloadObject *object);
  下载文件
  
  @param urlString URL链接
- @param directory 文件下载完成保存的目录，如果为nil，默认保存到“.../Library/Caches/CLDownloader”
+ @param directory 文件下载完成后保存的目录，如果为nil，默认保存到“.../Library/Caches/AFDownloader”
  @param state 回调-下载状态
  @param progress 回调-下载进度
  @param completion 回调-下载完成
@@ -49,6 +63,11 @@ typedef void (^CLDownloaderBlock)(AFDownloadObject *object);
 
 
 #pragma mark - Downloads
+/**
+ 下载下一个文件
+ */
+- (void)toDowloadNextObject;
+
 /**
  挂起指定下载任务
  */
@@ -89,5 +108,15 @@ typedef void (^CLDownloaderBlock)(AFDownloadObject *object);
  格式化文件大小
  */
 - (NSString *)formatByteCount:(long long)size;
+
+/**
+ 文件是否已下载
+ */
+- (BOOL)isDownloadCompleted:(NSString *)urlString;
+
+/**
+ 文件已经下载的大小
+ */
+- (NSUInteger)downloadedLength:(NSString *)urlString;
 
 @end

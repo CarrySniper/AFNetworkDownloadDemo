@@ -8,21 +8,9 @@
 
 #import "AFDownloader.h"
 #import "AFDownloader+Plist.h"
-
-#define CLCachesDirectory       [[AFDownloader manager] cachesDirectory]  // 缓存路径
-
-#define CLFileName(URL)         [URL lastPathComponent] // 根据URL获取文件名，xxx.zip
-
-#define CLFilePath(URL)         [CLCachesDirectory stringByAppendingPathComponent:CLFileName(URL)]
-
-#define CLFilesPlistPath        [CLCachesDirectory stringByAppendingPathComponent:@"CLFilesSize.plist"]
+#import "AFDownloader+Listener.h"
 
 @interface AFDownloader ()
-
-@property (nonatomic, strong) NSFileManager *fileManager;
-@property (nonatomic, strong) NSMutableDictionary<NSString *, AFDownloadObject *> *downloadsSet;
-@property (nonatomic, strong) NSMutableArray *downloadingArray;
-@property (nonatomic, strong) NSMutableArray *waitingArray;
 
 @end
 
@@ -55,10 +43,12 @@ static dispatch_once_t onceToken;
         if (!isExists || !isDirectory) {
             [fileManager createDirectoryAtPath:cachesDirectory withIntermediateDirectories:YES attributes:nil error:nil];
         }
+        NSLog(@"AFDownloader下载目录：%@", cachesDirectory);
     });
     return instance;
 }
 
+#pragma mark 下载数据
 - (void)downloadURL:(NSString *)urlString
           directory:(NSString *)directory
               state:(CLDownloadStateBlock)state
@@ -104,45 +94,6 @@ static dispatch_once_t onceToken;
     // 添加到待下载列表，进行下载
     [self.waitingArray addObject:object];
     [self toDowloadNextObject];
-
-    
-//    NSURL *URL = [NSURL URLWithString:encodedString];
-//    NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:URL];
-//
-//    // Range
-//    // bytes=x-y ==  x byte ~ y byte
-//    // bytes=x-  ==  x byte ~ end
-//    // bytes=-y  ==  head ~ y byte
-//    NSInteger length = [self downloadedLength:[URL absoluteString]];
-//    [request setValue:[NSString stringWithFormat:@"bytes=%ld-", (long)length] forHTTPHeaderField:@"Range"];
-//
-//    __block NSURLSessionDataTask *dataTask = [self.sessionManager dataTaskWithRequest:request uploadProgress:nil downloadProgress:^(NSProgress * _Nonnull downloadProgress) {
-//
-//    } completionHandler:^(NSURLResponse * _Nonnull response, id  _Nullable responseObject, NSError * _Nullable error) {
-//
-//    }];
-//
-//    [dataTask resume];
-//
-//    NSString *absolutePath = [self fileAbsolutePathOfURL:URL];
-//
-//    AFDownloadObject *object = [[AFDownloadObject alloc]init];
-//    object.urlString = [URL absoluteString];
-//    object.outputStream = [NSOutputStream outputStreamToFileAtPath:absolutePath append:YES];
-//    object.dataTask = dataTask;
-//    self.downloadsSet[dataTask.taskDescription] = object;
-    
-//    NSURLSessionDownloadTask *downloadTask;
-//    downloadTask = [self.sessionManager downloadTaskWithRequest:request progress:^(NSProgress * _Nonnull downloadProgress) {
-//
-//    } destination:^NSURL * _Nonnull(NSURL * _Nonnull targetPath, NSURLResponse * _Nonnull response) {
-//        NSString *filePath = [[weakSelf cachesDirectory] stringByAppendingPathComponent:response.suggestedFilename];
-//        return [NSURL fileURLWithPath:filePath];
-//    } completionHandler:^(NSURLResponse * _Nonnull response, NSURL * _Nullable filePath, NSError * _Nullable error) {
-//
-//    }];
-//
-//    [downloadTask resume];
 }
 
 #pragma mark - 下载列表数据
@@ -152,127 +103,6 @@ static dispatch_once_t onceToken;
 }
 - (NSArray *)downloadList {
     return [self getAllDataWithPlist:CLFilesPlistPath];
-}
-
-#pragma mark - 数据处理
-- (void)setDataHandle {
-    __weak typeof(self) weakSelf = self;
-    // 完成会话任务回调
-    [self.sessionManager setTaskDidCompleteBlock:^(NSURLSession * _Nonnull session, NSURLSessionTask * _Nonnull task, NSError * _Nullable error) {
-        NSLog(@"setTaskDidCompleteBlock %zd",task.state);
-        
-        // Error Domain=NSURLErrorDomain Code=-999 "Canceled/已取消"
-        if (error && error.code == -999) {
-            return;
-        }
-        
-        AFDownloadObject *object = weakSelf.downloadsSet[task.taskDescription];
-        if (object) {
-            
-            // 关闭输出
-            [object closeOutputStream];
-            
-            [weakSelf.downloadsSet removeObjectForKey:task.taskDescription];
-            [weakSelf.downloadingArray removeObject:object];
-            
-            dispatch_async(dispatch_get_main_queue(), ^{
-                if ([weakSelf isDownloadCompleted:object.urlString]) {
-                    NSString *destPath = object.directoryPath;
-                    NSString *fullPath = [weakSelf fileAbsolutePath:object.urlString];
-                    if (destPath) {
-                        NSError *error;
-                        if (![weakSelf.fileManager moveItemAtPath:fullPath toPath:destPath error:&error]) {
-                            NSLog(@"moveItemAtPath error: %@", error);
-                        }
-                    }
-                    if (object.stateBlock) {
-                        object.stateBlock(CLDownloadStateCompleted);
-                    }
-                    if (object.completionBlock) {
-                        object.completionBlock(YES, destPath ?: fullPath, nil);
-                    }
-                } else {
-                    if (object.stateBlock) {
-                        object.stateBlock(CLDownloadStateCanceling);
-                    }
-                    if (object.completionBlock) {
-                        object.completionBlock(NO, nil, error);
-                    }
-                }
-            });
-            // 下载下一个
-            [weakSelf toDowloadNextObject];
-        }
-    }];
-    
-    // 接收到请求响应时回调
-    [self.sessionManager setDataTaskDidReceiveResponseBlock:^NSURLSessionResponseDisposition(NSURLSession * _Nonnull session, NSURLSessionDataTask * _Nonnull dataTask, NSURLResponse * _Nonnull response) {
-        NSLog(@"setDataTaskDidReceiveResponseBlock %zd",dataTask.state);
-        AFDownloadObject *object = weakSelf.downloadsSet[dataTask.taskDescription];
-        if (object) {
-            // 开启输出
-            [object openOutputStream];
-            // 记录时间
-            object.date = [NSDate date];
-            
-            // 计算保存已下载大小 expectedContentLength：预计要下载长度 + 已下载文件长度
-            NSUInteger downloadLength = [weakSelf downloadedLength:object.urlString];
-            NSUInteger totalLength = (long)response.expectedContentLength + downloadLength;
-            object.totalLength = totalLength;
-            // 将长度写入Plist文件
-            [weakSelf writeLengthWithPlist:CLFilesPlistPath urlString:object.urlString downloadLength:downloadLength totalLength:totalLength];
-        }
-        
-        return NSURLSessionResponseAllow;
-    }];
-    
-    // 数据接收回调
-    [self.sessionManager setDataTaskDidReceiveDataBlock:^(NSURLSession * _Nonnull session, NSURLSessionDataTask * _Nonnull dataTask, NSData * _Nonnull data) {
-        
-        NSLog(@"DidReceiveData %zd",dataTask.state);
-        AFDownloadObject *object = weakSelf.downloadsSet[dataTask.taskDescription];
-        if (!object) {
-            [dataTask cancel];
-            return;
-        }
-        // 保存文件
-        [object.outputStream write:data.bytes maxLength:data.length];
-        // 更新Plist数据
-        [weakSelf updateWithPlist:CLFilesPlistPath urlString:object.urlString addDownloadLength:data.length];
-        
-        /** 计算下载速度 最快要计算1秒内的速度，所以要+=累积 */
-        object.readLength += data.length;
-        NSDate *currentDate = [NSDate date];
-        if ([currentDate timeIntervalSinceDate:object.date] >= 1) {
-            NSTimeInterval time = [currentDate timeIntervalSinceDate:object.date];
-            double speed = object.readLength / time;
-            object.speed = [weakSelf formatByteCount:speed];
-            object.date = currentDate;
-            object.readLength = 0;
-        }
-        
-        dispatch_async(dispatch_get_main_queue(), ^{
-            if (object.progressBlock) {
-                NSUInteger receivedSize = [weakSelf downloadedLength:object.urlString];
-                NSUInteger expectedSize = object.totalLength;
-                if (expectedSize == 0) {
-                    return;
-                }
-                CGFloat progress = 1.0 * receivedSize / expectedSize;
-                object.progressBlock([weakSelf formatByteCount:receivedSize],
-                                     [weakSelf formatByteCount:expectedSize],
-                                     object.speed,
-                                     progress);
-            }
-        });
-    }];
-    
-    //    [self.sessionManager setDownloadTaskDidWriteDataBlock:^(NSURLSession * _Nonnull session, NSURLSessionDownloadTask * _Nonnull downloadTask, int64_t bytesWritten, int64_t totalBytesWritten, int64_t totalBytesExpectedToWrite) {
-    //
-    //    }];
-    //    [self.sessionManager setDownloadTaskDidResumeBlock:^(NSURLSession * _Nonnull session, NSURLSessionDownloadTask * _Nonnull downloadTask, int64_t fileOffset, int64_t expectedTotalBytes) {
-    //
-    //    }];
 }
 
 #pragma mark - Assist Methods
@@ -402,6 +232,10 @@ static dispatch_once_t onceToken;
     if (!URL) {
         return;
     }
+    
+    [self deleteOneWithPlist:CLFilesPlistPath urlString:urlString]; // 删除Plist数据
+    [self deleteFile:urlString];                                    // 删除文件数据
+    
     AFDownloadObject *object = self.downloadsSet[CLFileName(URL)];
     if (!object) {
         return;
@@ -420,14 +254,17 @@ static dispatch_once_t onceToken;
     } else {
         [self.downloadingArray removeObject:object];
     }
-    [self.downloadsSet removeObjectForKey:CLFileName(URL)];
-    [self deleteOneWithPlist:CLFilesPlistPath urlString:urlString];
+    [self.downloadsSet removeObjectForKey:CLFileName(URL)];         // 删除集合数据
     
     [self toDowloadNextObject];
 }
 
 #pragma mark 删除全部下载任务
 - (void)deleteAllDownloads {
+    
+    [self deleteAllWithPlist:CLFilesPlistPath];         // 删除Plist数据
+    [self deleteAllFiles];                              // 删除文件数据
+    
     if (self.downloadsSet.count == 0) {
         return;
     }
@@ -441,10 +278,9 @@ static dispatch_once_t onceToken;
         }
     }
     
-    [self.waitingArray removeAllObjects];
-    [self.downloadingArray removeAllObjects];
-    [self.downloadsSet removeAllObjects];
-    [self deleteAllWithPlist:CLFilesPlistPath];
+    [self.waitingArray removeAllObjects];               // 删除集合数据
+    [self.downloadingArray removeAllObjects];           // 删除集合数据
+    [self.downloadsSet removeAllObjects];               // 删除集合数据
 }
 
 #pragma mark - Files
@@ -456,7 +292,7 @@ static dispatch_once_t onceToken;
 
 #pragma mark 文件绝对路径
 - (NSString *)fileAbsolutePath:(NSString *)urlString {
-    NSString *encodedString = [urlString stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]];
+    NSString *encodedString = [self encodedString:urlString];
     NSURL *URL = [NSURL URLWithString:encodedString];
     return CLFilePath(URL);
 }
@@ -479,6 +315,25 @@ static dispatch_once_t onceToken;
         return 0;
     }
     return [fileAttributes[NSFileSize] integerValue];
+}
+
+#pragma mark 删除指定文件
+- (void)deleteFile:(NSString *)urlString {
+    // 绝对路径删除
+    NSString *filePath = [self fileAbsolutePath:urlString];
+    if (![self.fileManager fileExistsAtPath:filePath]) {
+        return;
+    }
+    [self.fileManager removeItemAtPath:filePath error:nil];
+}
+
+#pragma mark 删除全部文件
+- (void)deleteAllFiles {
+    NSArray *fileNames = [self.fileManager contentsOfDirectoryAtPath:CLCachesDirectory error:nil];
+    for (NSString *fileName in fileNames) {
+        NSString *filePath = [CLCachesDirectory stringByAppendingPathComponent:fileName];
+        [self.fileManager removeItemAtPath:filePath error:nil];
+    }
 }
 
 #pragma mark 格式化文件大小

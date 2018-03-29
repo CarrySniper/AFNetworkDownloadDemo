@@ -30,12 +30,11 @@
         
         NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:URL];
         [request setValue:[NSString stringWithFormat:@"bytes=%ld-", (long)length] forHTTPHeaderField:@"Range"];
-        
-        self.dataTask = [[AFDownloader manager].sessionManager dataTaskWithRequest:request uploadProgress:nil downloadProgress:^(NSProgress * _Nonnull downloadProgress) {
-            
-        } completionHandler:^(NSURLResponse * _Nonnull response, id  _Nullable responseObject, NSError * _Nullable error) {
-            
-        }];
+        // 下载任务，不在此回调，交给AFDownloader sessionManager处理
+        self.dataTask = [[AFDownloader manager].sessionManager dataTaskWithRequest:request
+                                                                    uploadProgress:nil
+                                                                  downloadProgress:nil
+                                                                 completionHandler:nil];
     }
     return self;
 }

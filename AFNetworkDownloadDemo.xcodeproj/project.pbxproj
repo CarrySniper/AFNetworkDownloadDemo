@@ -20,6 +20,7 @@
 		FA7761C120510C590075B6DC /* DownloadTableViewCell.xib in Resources */ = {isa = PBXBuildFile; fileRef = FA7761BF20510C590075B6DC /* DownloadTableViewCell.xib */; };
 		FA7761C42051113B0075B6DC /* AFDownloader+Plist.m in Sources */ = {isa = PBXBuildFile; fileRef = FA7761C32051113B0075B6DC /* AFDownloader+Plist.m */; };
 		FA7761C7205121060075B6DC /* CommonModel.m in Sources */ = {isa = PBXBuildFile; fileRef = FA7761C5205121060075B6DC /* CommonModel.m */; };
+		FAD24E96206C8AD600731F4C /* AFDownloader+Listener.m in Sources */ = {isa = PBXBuildFile; fileRef = FAD24E95206C8AD600731F4C /* AFDownloader+Listener.m */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -47,6 +48,8 @@
 		FA7761C32051113B0075B6DC /* AFDownloader+Plist.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "AFDownloader+Plist.m"; sourceTree = "<group>"; };
 		FA7761C5205121060075B6DC /* CommonModel.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = CommonModel.m; sourceTree = "<group>"; };
 		FA7761C6205121060075B6DC /* CommonModel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CommonModel.h; sourceTree = "<group>"; };
+		FAD24E94206C8AD600731F4C /* AFDownloader+Listener.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "AFDownloader+Listener.h"; sourceTree = "<group>"; };
+		FAD24E95206C8AD600731F4C /* AFDownloader+Listener.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = "AFDownloader+Listener.m"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -81,6 +84,8 @@
 		FA776192204F85400075B6DC = {
 			isa = PBXGroup;
 			children = (
+				FAD24E94206C8AD600731F4C /* AFDownloader+Listener.h */,
+				FAD24E95206C8AD600731F4C /* AFDownloader+Listener.m */,
 				FA7761C22051113B0075B6DC /* AFDownloader+Plist.h */,
 				FA7761C32051113B0075B6DC /* AFDownloader+Plist.m */,
 				FA7761B7204FD2D60075B6DC /* AFDownloadObject.h */,
@@ -252,6 +257,7 @@
 				FA7761A3204F85400075B6DC /* ViewController.m in Sources */,
 				FA7761AE204F85400075B6DC /* main.m in Sources */,
 				FA7761C7205121060075B6DC /* CommonModel.m in Sources */,
+				FAD24E96206C8AD600731F4C /* AFDownloader+Listener.m in Sources */,
 				FA7761B9204FD2D60075B6DC /* AFDownloadObject.m in Sources */,
 				FA7761C42051113B0075B6DC /* AFDownloader+Plist.m in Sources */,
 				FA7761A0204F85400075B6DC /* AppDelegate.m in Sources */,

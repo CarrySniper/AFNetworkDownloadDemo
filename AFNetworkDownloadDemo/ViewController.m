@@ -31,7 +31,7 @@
     //http://vrks3kssjavasdk2.ks3-cn-beijing.ksyun.com/礼物20180122/zhuantou.zip
     //@"http://7j1xh9.com1.z0.glb.clouddn.com/f86df31c9ca3e1901fbe87670338eb6b.ipa?attname=CSR201802140327QNJAQJ-resigned.ipa"
     
-    _dataArray = [NSMutableArray array];
+    // 最大并发数
     [AFDownloader manager].maxConcurrentCount = 1;
     
     NSArray *array = @[@"http://download.cntv.cn/cbox/mac/ysyy_v1.0.1.dmg",
@@ -39,6 +39,7 @@
                        @"http://7j1xh9.com1.z0.glb.clouddn.com/f86df31c9ca3e1901fbe87670338eb6b.ipa?attname=CSR201802140327QNJAQJ-resigned.ipa",
                        ];
     
+    _dataArray = [NSMutableArray array];
     for (NSString *urlString in array) {
         [self addDownload:urlString];
     }
@@ -74,8 +75,11 @@
 - (nullable NSArray<UITableViewRowAction *> *)tableView:(UITableView *)tableView editActionsForRowAtIndexPath:(NSIndexPath *)indexPath {
     __weak __typeof(self)weakSelf = self;
     UITableViewRowAction *deleteAction = [UITableViewRowAction rowActionWithStyle:UITableViewRowActionStyleDefault title:@"删除" handler:^(UITableViewRowAction * _Nonnull action, NSIndexPath * _Nonnull indexPath) {
-       
-        [tableView reloadData];
+        
+        CommonModel *model = weakSelf.dataArray[indexPath.row];
+        [weakSelf.dataArray removeObjectAtIndex:indexPath.row];
+        [[AFDownloader manager] deleteDownload:model.urlString];
+        [tableView deleteRowsAtIndexPaths:@[indexPath] withRowAnimation:UITableViewRowAnimationBottom];
         
     }];
     return @[deleteAction];
