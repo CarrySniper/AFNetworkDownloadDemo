@@ -84,14 +84,7 @@
 		FA776192204F85400075B6DC = {
 			isa = PBXGroup;
 			children = (
-				FAD24E94206C8AD600731F4C /* AFDownloader+Listener.h */,
-				FAD24E95206C8AD600731F4C /* AFDownloader+Listener.m */,
-				FA7761C22051113B0075B6DC /* AFDownloader+Plist.h */,
-				FA7761C32051113B0075B6DC /* AFDownloader+Plist.m */,
-				FA7761B7204FD2D60075B6DC /* AFDownloadObject.h */,
-				FA7761B8204FD2D60075B6DC /* AFDownloadObject.m */,
-				FA7761B4204F88790075B6DC /* AFDownloader.h */,
-				FA7761B5204F88790075B6DC /* AFDownloader.m */,
+				FAD24E97206CB33A00731F4C /* AFDownloader */,
 				FA77619D204F85400075B6DC /* AFNetworkDownloadDemo */,
 				FA77619C204F85400075B6DC /* Products */,
 				E4D736B744B52B37C1057E3E /* Pods */,
@@ -126,6 +119,21 @@
 				FA7761AD204F85400075B6DC /* main.m */,
 			);
 			path = AFNetworkDownloadDemo;
+			sourceTree = "<group>";
+		};
+		FAD24E97206CB33A00731F4C /* AFDownloader */ = {
+			isa = PBXGroup;
+			children = (
+				FAD24E94206C8AD600731F4C /* AFDownloader+Listener.h */,
+				FAD24E95206C8AD600731F4C /* AFDownloader+Listener.m */,
+				FA7761C22051113B0075B6DC /* AFDownloader+Plist.h */,
+				FA7761C32051113B0075B6DC /* AFDownloader+Plist.m */,
+				FA7761B7204FD2D60075B6DC /* AFDownloadObject.h */,
+				FA7761B8204FD2D60075B6DC /* AFDownloadObject.m */,
+				FA7761B4204F88790075B6DC /* AFDownloader.h */,
+				FA7761B5204F88790075B6DC /* AFDownloader.m */,
+			);
+			path = AFDownloader;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */

@@ -10,7 +10,7 @@
 
 @interface AFDownloader (Listener)
 
-#pragma mark - 数据处理
-- (void)setDataHandle;
+#pragma mark - 数据监听处理
+- (void)setSessionManagerListener;
 
 @end

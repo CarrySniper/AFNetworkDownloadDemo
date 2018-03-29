@@ -27,7 +27,7 @@ static dispatch_once_t onceToken;
     dispatch_once(&onceToken, ^{
         instance = [super init];
         
-        [self setDataHandle];
+        [self setSessionManagerListener];
         
         self.maxConcurrentCount = 0;
         self.fileManager = [NSFileManager defaultManager];

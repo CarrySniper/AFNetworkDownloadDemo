@@ -12,7 +12,7 @@
 @implementation AFDownloader (Listener)
 
 #pragma mark - 数据处理
-- (void)setDataHandle {
+- (void)setSessionManagerListener {
     __weak typeof(self) weakSelf = self;
     // 完成会话任务回调
     [self.sessionManager setTaskDidCompleteBlock:^(NSURLSession * _Nonnull session, NSURLSessionTask * _Nonnull task, NSError * _Nullable error) {
