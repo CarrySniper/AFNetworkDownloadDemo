@@ -18,8 +18,13 @@
         return;
     }
     __weak typeof(self) weakSelf = self;
-    // 设置下载及回调
-    [[AFDownloader manager] downloadURL:_model.urlString directory:nil state:^(CLDownloadState state) {
+    // 第二步：设置下载及回调
+	
+	
+	// 设置下载路径。文件夹不存在的话，自己要去建。提供方法创建文件夹
+	NSString *directory = [[NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES) lastObject] stringByAppendingPathComponent:@"MyFolder"];
+	
+    [[AFDownloader manager] downloadURL:_model.urlString directory:directory state:^(CLDownloadState state) {
         weakSelf.model.state = state;
         dispatch_async(dispatch_get_main_queue(), ^{
             switch (state) {

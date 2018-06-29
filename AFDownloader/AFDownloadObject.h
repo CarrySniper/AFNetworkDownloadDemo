@@ -71,12 +71,12 @@ typedef void (^CLDownloadCompletionBlock)(BOOL successful, NSString *filePath, N
 
  @param urlString 下载链接
  @param beginlocation 下载起始位置
- @param directory 下载完成后转移文件目录
+ @param directoryPath 下载文件目录位置
  @return 对象
  */
 - (instancetype)initWithUrlString:(NSString *)urlString
                        beginRange:(NSUInteger)beginlocation
-                         withPath:(NSString *)directory NS_DESIGNATED_INITIALIZER;
+					directoryPath:(NSString *)directoryPath NS_DESIGNATED_INITIALIZER;
 
 // MARK: - 保存文件
 - (void)openOutputStream;

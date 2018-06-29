@@ -14,7 +14,7 @@
 #pragma mark - 数据处理
 - (void)setSessionManagerListener {
     __weak typeof(self) weakSelf = self;
-    // 完成会话任务回调
+    // MARK: 完成会话任务回调
     [self.sessionManager setTaskDidCompleteBlock:^(NSURLSession * _Nonnull session, NSURLSessionTask * _Nonnull task, NSError * _Nullable error) {
         NSLog(@"setTaskDidCompleteBlock %zd",task.state);
         
@@ -25,28 +25,22 @@
         
         AFDownloadObject *object = weakSelf.downloadsSet[task.taskDescription];
         if (object) {
-            
             // 关闭输出
             [object closeOutputStream];
-            
-            [weakSelf.downloadsSet removeObjectForKey:task.taskDescription];
+            // 移除出下载中数组
             [weakSelf.downloadingArray removeObject:object];
             
             dispatch_async(dispatch_get_main_queue(), ^{
                 if ([weakSelf isDownloadCompleted:object.urlString]) {
-                    NSString *destPath = object.directoryPath;
-                    NSString *fullPath = [weakSelf fileAbsolutePath:object.urlString];
-                    if (destPath) {
-                        NSError *error;
-                        if (![weakSelf.fileManager moveItemAtPath:fullPath toPath:destPath error:&error]) {
-                            NSLog(@"moveItemAtPath error: %@", error);
-                        }
-                    }
+					NSString *filePath = [weakSelf fileAbsolutePath:object.urlString];
+					if (object.directoryPath) {// 这个是替换的地址
+						filePath = [object.directoryPath stringByAppendingPathComponent:[filePath lastPathComponent]];
+					}
                     if (object.stateBlock) {
                         object.stateBlock(CLDownloadStateCompleted);
                     }
                     if (object.completionBlock) {
-                        object.completionBlock(YES, destPath ?: fullPath, nil);
+                        object.completionBlock(YES, filePath, nil);
                     }
                 } else {
                     if (object.stateBlock) {
@@ -62,7 +56,7 @@
         }
     }];
     
-    // 接收到请求响应时回调
+    // MARK: 接收到请求响应时回调
     [self.sessionManager setDataTaskDidReceiveResponseBlock:^NSURLSessionResponseDisposition(NSURLSession * _Nonnull session, NSURLSessionDataTask * _Nonnull dataTask, NSURLResponse * _Nonnull response) {
         NSLog(@"setDataTaskDidReceiveResponseBlock %zd",dataTask.state);
         AFDownloadObject *object = weakSelf.downloadsSet[dataTask.taskDescription];
@@ -73,17 +67,19 @@
             object.date = [NSDate date];
             
             // 计算保存已下载大小 expectedContentLength：预计要下载长度 + 已下载文件长度
-            NSUInteger downloadLength = [weakSelf downloadedLength:object.urlString];
+//            NSUInteger downloadLength = [weakSelf downloadedLength:object.urlString];
+			
+			NSUInteger downloadLength = [weakSelf downloadLengthPlistWithUrlString:object.urlString];
             NSUInteger totalLength = (long)response.expectedContentLength + downloadLength;
             object.totalLength = totalLength;
             // 将长度写入Plist文件
-            [weakSelf writeLengthWithPlist:CLFilesPlistPath urlString:object.urlString downloadLength:downloadLength totalLength:totalLength];
+			[weakSelf addPlistWithUrlString:object.urlString directoryPath:object.directoryPath downloadLength:downloadLength totalLength:totalLength];
         }
         
         return NSURLSessionResponseAllow;
     }];
     
-    // 数据接收回调
+	// MARK: 数据接收回调
     [self.sessionManager setDataTaskDidReceiveDataBlock:^(NSURLSession * _Nonnull session, NSURLSessionDataTask * _Nonnull dataTask, NSData * _Nonnull data) {
         
         AFDownloadObject *object = weakSelf.downloadsSet[dataTask.taskDescription];
@@ -94,7 +90,7 @@
         // 保存文件
         [object.outputStream write:data.bytes maxLength:data.length];
         // 更新Plist数据
-        [weakSelf updateWithPlist:CLFilesPlistPath urlString:object.urlString addDownloadLength:data.length];
+        [weakSelf updatePlistWithUrlString:object.urlString addDownloadLength:data.length];
         
         /** 计算下载速度 最快要计算1秒内的速度，所以要+=累积 */
         object.readLength += data.length;
@@ -109,7 +105,7 @@
         
         dispatch_async(dispatch_get_main_queue(), ^{
             if (object.progressBlock) {
-                NSUInteger receivedSize = [weakSelf downloadedLength:object.urlString];
+                NSUInteger receivedSize = [weakSelf downloadLengthPlistWithUrlString:object.urlString];
                 NSUInteger expectedSize = object.totalLength;
                 if (expectedSize == 0) {
                     return;

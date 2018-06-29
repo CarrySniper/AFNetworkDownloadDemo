@@ -14,42 +14,59 @@
 /**
  获取一条记录
  */
-- (NSDictionary *)getOneDataWithPlist:(NSString *)plistPath urlString:(NSString *)urlString;
+- (NSDictionary *)getPlistDataWithUrlString:(NSString *)urlString;
 
 /**
  获取所有记录
  */
-- (NSArray *)getAllDataWithPlist:(NSString *)plistPath;
+- (NSArray *)getAllPlistData;
+
 
 /**
- 记录文件大小
+ 添加文件数据
+
+ @param urlString url链接
+ @param directoryPath 下载路径
+ @param downloadLength 已下载大小
+ @param totalLength 总文件大小
  */
-- (void)writeLengthWithPlist:(NSString *)plistPath
-                 urlString:(NSString *)urlString
-            downloadLength:(NSUInteger)downloadLength
-               totalLength:(NSUInteger)totalLength;
+- (void)addPlistWithUrlString:(NSString *)urlString
+				directoryPath:(NSString *)directoryPath
+			   downloadLength:(NSUInteger)downloadLength
+				  totalLength:(NSUInteger)totalLength;
 
 /**
  文件更新
+
+ @param urlString url链接
+ @param addDownloadLength 添加下载大小
  */
-- (void)updateWithPlist:(NSString *)plistPath
-          urlString:(NSString *)urlString
-  addDownloadLength:(NSUInteger)addDownloadLength;
+- (void)updatePlistWithUrlString:(NSString *)urlString
+			   addDownloadLength:(NSUInteger)addDownloadLength;
 
 /**
- 获取文件大小
+ 文件是否已下载完成，已完成则返回文件大小
  */
-- (NSUInteger)totalLengthWithPlist:(NSString *)plistPath
-                     urlString:(NSString *)urlString;
+- (NSUInteger)isDownloadCompleted:(NSString *)urlString;
+
+/**
+ 获取文件总大小
+ */
+- (NSUInteger)totalLengthPlistWithUrlString:(NSString *)urlString;
+
+/**
+ 获取文件已下载大小
+ */
+- (NSUInteger)downloadLengthPlistWithUrlString:(NSString *)urlString;
 
 /**
  删除一个数据
  */
-- (void)deleteOneWithPlist:(NSString *)plistPath urlString:(NSString *)urlString;
+- (void)deletePlistWithUrlString:(NSString *)urlString;
 
 /**
  删除所有数据
  */
-- (void)deleteAllWithPlist:(NSString *)plistPath;
+- (void)deleteAllPlistData;
 
 @end

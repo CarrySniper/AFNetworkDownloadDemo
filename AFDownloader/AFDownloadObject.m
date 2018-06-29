@@ -11,7 +11,7 @@
 
 @implementation AFDownloadObject
 
-- (instancetype)initWithUrlString:(NSString *)urlString beginRange:(NSUInteger)length withPath:(NSString *)directory {
+- (instancetype)initWithUrlString:(NSString *)urlString beginRange:(NSUInteger)length directoryPath:(NSString *)directoryPath {
     self = [super init];
     if (self) {
         if (!urlString) {
@@ -19,15 +19,19 @@
         }
         self.urlString = urlString;
         self.speed = @"0bytes";
-        self.directoryPath = directory;
+        self.directoryPath = directoryPath;
         
         // Range
         // bytes=x-y ==  x byte ~ y byte
         // bytes=x-  ==  x byte ~ end
         // bytes=-y  ==  head ~ y byte
-        NSURL *URL = [NSURL URLWithString:urlString];
-        self.outputStream = [NSOutputStream outputStreamToFileAtPath:[[AFDownloader manager] fileAbsolutePath:urlString] append:YES];
-        
+		NSString *filePath = [[AFDownloader manager] fileAbsolutePath:urlString];
+		if (directoryPath) {// 替换存放地址
+			filePath = [directoryPath stringByAppendingPathComponent:[filePath lastPathComponent]];
+		}
+        self.outputStream = [NSOutputStream outputStreamToFileAtPath:filePath append:YES];
+		
+		NSURL *URL = [NSURL URLWithString:urlString];
         NSMutableURLRequest *request = [NSMutableURLRequest requestWithURL:URL];
         [request setValue:[NSString stringWithFormat:@"bytes=%ld-", (long)length] forHTTPHeaderField:@"Range"];
         // 下载任务，不在此回调，交给AFDownloader sessionManager处理

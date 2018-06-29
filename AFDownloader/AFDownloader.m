@@ -10,6 +10,11 @@
 #import "AFDownloader+Plist.h"
 #import "AFDownloader+Listener.h"
 
+static NSString *const kDownloadeOfDownloadLength        = @"downloadLength";        // 已下载长度
+static NSString *const kDownloadeOfName                  = @"name";                  // 名称
+static NSString *const kDownloadeOfPath                  = @"path";                  // 存储路径
+static NSString *const kDownloadeOfUrl                   = @"url";                   // URL字符串
+
 @interface AFDownloader ()
 
 @end
@@ -26,24 +31,25 @@ static dispatch_once_t onceToken;
 {
     dispatch_once(&onceToken, ^{
         instance = [super init];
-        
-        [self setSessionManagerListener];
-        
-        self.maxConcurrentCount = 0;
-        self.fileManager = [NSFileManager defaultManager];
-        self.downloadsSet = [NSMutableDictionary dictionary];
-        self.downloadingArray = [NSMutableArray array];
-        self.waitingArray = [NSMutableArray array];
-        
-        // 创建下载目录
-        NSString *cachesDirectory = [self cachesDirectory];
-        BOOL isDirectory = NO;
-        NSFileManager *fileManager = [NSFileManager defaultManager];
-        BOOL isExists = [fileManager fileExistsAtPath:cachesDirectory isDirectory:&isDirectory];
-        if (!isExists || !isDirectory) {
-            [fileManager createDirectoryAtPath:cachesDirectory withIntermediateDirectories:YES attributes:nil error:nil];
-        }
-        NSLog(@"AFDownloader下载目录：%@", cachesDirectory);
+		
+		// 初始设置
+		self.maxConcurrentCount = 0;
+		self.fileManager = [NSFileManager defaultManager];
+		self.downloadingArray = [NSMutableArray array];
+		self.waitingArray = [NSMutableArray array];
+		
+		// AFDownloader+Listener
+		[self setSessionManagerListener];
+		
+		// 创建下载目录
+		NSString *cachesDirectory = [self cachesDirectory];
+		BOOL isDirectory = NO;
+		NSFileManager *fileManager = [NSFileManager defaultManager];
+		BOOL isExists = [fileManager fileExistsAtPath:cachesDirectory isDirectory:&isDirectory];
+		if (!isExists || !isDirectory) {
+			[fileManager createDirectoryAtPath:cachesDirectory withIntermediateDirectories:YES attributes:nil error:nil];
+		}
+		NSLog(@"AFDownloader下载目录：%@", cachesDirectory);
     });
     return instance;
 }
@@ -58,38 +64,49 @@ static dispatch_once_t onceToken;
     if (!urlString) {
         return;
     }
-    
+	
+	// 转换URL，避免特殊字符和中文链接下载不了
     NSString *encodedString = [self encodedString:urlString];
-    NSInteger length = [self downloadedLength:encodedString];
-    NSURL *URL = [NSURL URLWithString:encodedString];
-    // 判断urlString的文件名是否已经下载完成
-    if ([self isDownloadCompleted:encodedString]) {
+	NSURL *URL = [NSURL URLWithString:encodedString];
+	
+	// 实例化 新的下载对象（判断，引发Crash）
+	NSString *fileName = CLFileName(URL);//键为文件名
+	if (fileName == nil || fileName.length == 0) {
+		return;
+	}
+	
+	// 获取已下载大小作为起始下载Rang
+	NSInteger length = [self downloadLengthPlistWithUrlString:encodedString];
+	// 判断是否在下载集合里面，存在则不创建新的
+	AFDownloadObject *object = [[AFDownloadObject alloc]initWithUrlString:encodedString beginRange:length directoryPath:directory];
+	if (object == nil) {
+		return;
+	}
+	
+    // 判断urlString的文件名是否已经下载完成，不为0则为已完成
+	NSInteger totalLength = [self isDownloadCompleted:encodedString];
+    if (totalLength != 0) {
         if (state) {
             state(CLDownloadStateCompleted);
         }
         if (progress) {
-            progress([self formatByteCount:length], [self formatByteCount:length], [self formatByteCount:0.0], 1.0);
+            progress([self formatByteCount:totalLength], [self formatByteCount:totalLength], [self formatByteCount:0.0], 1.0);
         }
         if (completion) {
             completion(YES, [self fileAbsolutePath:encodedString], nil);
         }
+		// 添加到全部下载集合内 key为文件名
+		[self.downloadsSet setObject:object forKey:fileName];
         return;
     }
-    
-    // 判断是否在下载集合里面，存在则不创建新的
-    AFDownloadObject *object = self.downloadsSet[CLFileName(URL)];//键为文件名
-    if (object) {
-        return;
-    }
-    
-    // 实例化 新的下载对象
-    object = [[AFDownloadObject alloc]initWithUrlString:encodedString beginRange:length withPath:directory];
-    object.dataTask.taskDescription = CLFileName(URL);//键为文件名
-    object.stateBlock = state;
-    object.progressBlock = progress;
-    object.completionBlock = completion;
-    
-    self.downloadsSet[object.dataTask.taskDescription] = object;
+	
+	object.dataTask.taskDescription = fileName;//键为文件名
+	object.stateBlock = state;
+	object.progressBlock = progress;
+	object.completionBlock = completion;
+	
+	// 添加到全部下载集合内 key为文件名
+	[self.downloadsSet setObject:object forKey:fileName];
     
     // 添加到待下载列表，进行下载
     [self.waitingArray addObject:object];
@@ -99,10 +116,11 @@ static dispatch_once_t onceToken;
 #pragma mark - 下载列表数据
 - (NSDictionary *)downloadObjectWithUrlString:(NSString *)urlString {
     NSString *encodedString = [self encodedString:urlString];
-    return [self getOneDataWithPlist:CLFilesPlistPath urlString:encodedString];
+    return [self getPlistDataWithUrlString:encodedString];
 }
+
 - (NSArray *)downloadList {
-    return [self getAllDataWithPlist:CLFilesPlistPath];
+    return [self getAllPlistData];
 }
 
 #pragma mark - Assist Methods
@@ -233,8 +251,8 @@ static dispatch_once_t onceToken;
         return;
     }
     
-    [self deleteOneWithPlist:CLFilesPlistPath urlString:urlString]; // 删除Plist数据
-    [self deleteFile:urlString];                                    // 删除文件数据
+    [self deletePlistWithUrlString:urlString]; 		// 删除Plist数据
+    [self deleteFile:urlString];                    // 删除文件数据
     
     AFDownloadObject *object = self.downloadsSet[CLFileName(URL)];
     if (!object) {
@@ -262,8 +280,8 @@ static dispatch_once_t onceToken;
 #pragma mark 删除全部下载任务
 - (void)deleteAllDownloads {
     
-    [self deleteAllWithPlist:CLFilesPlistPath];         // 删除Plist数据
-    [self deleteAllFiles];                              // 删除文件数据
+    [self deleteAllPlistData];         				// 删除Plist数据
+    [self deleteAllFiles];                      	// 删除文件数据
     
     if (self.downloadsSet.count == 0) {
         return;
@@ -297,26 +315,6 @@ static dispatch_once_t onceToken;
     return CLFilePath(URL);
 }
 
-#pragma mark 文件是否已下载
-- (BOOL)isDownloadCompleted:(NSString *)urlString {
-    NSInteger totalLength = [self totalLengthWithPlist:CLFilesPlistPath urlString:urlString];
-    if (totalLength != 0) {
-        if (totalLength == [self downloadedLength:urlString]) {
-            return YES;
-        }
-    }
-    return NO;
-}
-
-#pragma mark 文件已经下载的大小
-- (NSUInteger)downloadedLength:(NSString *)urlString {
-    NSDictionary *fileAttributes = [self.fileManager attributesOfItemAtPath:[self fileAbsolutePath:urlString] error:nil];
-    if (!fileAttributes) {
-        return 0;
-    }
-    return [fileAttributes[NSFileSize] integerValue];
-}
-
 #pragma mark 删除指定文件
 - (void)deleteFile:(NSString *)urlString {
     // 绝对路径删除
@@ -343,7 +341,22 @@ static dispatch_once_t onceToken;
 
 #pragma mark 转换带特殊字符的Url
 - (NSString *)encodedString:(NSString *)urlString {
-    return [urlString stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]];;
+    if ([self includeChinese:urlString]) {
+        return [urlString stringByAddingPercentEncodingWithAllowedCharacters:[NSCharacterSet URLQueryAllowedCharacterSet]];
+    }else{
+        return urlString;
+    }
+}
+
+#pragma mark 判罚文本是否带有中文
+- (BOOL)includeChinese:(NSString *)text {
+    for(int i = 0; i < [text length]; i++) {
+        int a =[text characterAtIndex:i];
+        if (a >0x4e00&& a <0x9fff) {
+            return YES;
+        }
+    }
+    return NO;
 }
 
 #pragma mark - Lazy Loading
@@ -359,6 +372,26 @@ static dispatch_once_t onceToken;
     }
     return _sessionManager;
 }
+
+#pragma mark getting方法
+- (NSMutableDictionary<NSString *,AFDownloadObject *> *)downloadsSet {
+	if (!_downloadsSet) {
+		// 读取Plist存储信息，转化为下载对象
+		_downloadsSet = [NSMutableDictionary dictionary];
+		NSArray *allData = [self getAllPlistData];
+		for (NSDictionary *dict in allData) {
+			NSString *fileName = dict[kDownloadeOfName];
+			NSString *encodedString = dict[kDownloadeOfUrl];
+			NSInteger length = [dict[kDownloadeOfDownloadLength] integerValue];
+			NSString *directory = dict[kDownloadeOfPath];
+			AFDownloadObject *object = [[AFDownloadObject alloc]initWithUrlString:encodedString beginRange:length directoryPath:directory];
+			// 添加到全部下载集合内 key为文件名
+			[_downloadsSet setObject:object forKey:fileName];
+		}
+	}
+	return _downloadsSet;
+}
+
 
 @end
 

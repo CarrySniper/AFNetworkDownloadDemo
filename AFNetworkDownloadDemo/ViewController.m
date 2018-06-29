@@ -31,12 +31,12 @@
     //http://vrks3kssjavasdk2.ks3-cn-beijing.ksyun.com/礼物20180122/zhuantou.zip
     //@"http://7j1xh9.com1.z0.glb.clouddn.com/f86df31c9ca3e1901fbe87670338eb6b.ipa?attname=CSR201802140327QNJAQJ-resigned.ipa"
     
-    // 最大并发数
+    // 第一步：设置最大并发数
     [AFDownloader manager].maxConcurrentCount = 1;
     
     NSArray *array = @[@"http://download.cntv.cn/cbox/mac/ysyy_v1.0.1.dmg",
                        @"http://vrks3kssjavasdk2.ks3-cn-beijing.ksyun.com/礼物20180122/zhuantou.zip",
-                       @"http://7j1xh9.com1.z0.glb.clouddn.com/f86df31c9ca3e1901fbe87670338eb6b.ipa?attname=CSR201802140327QNJAQJ-resigned.ipa",
+                       @"http://7j1xh9.com1.z0.glb.clouddn.com/f86df31c9ca3e1901fbe87670338eb6b.ipa",
                        ];
     
     _dataArray = [NSMutableArray array];
@@ -47,7 +47,7 @@
 }
 
 - (void)addDownload:(NSString *)urlString {
-    // Plist文件数据
+    // Plist文件数据，获取下载进度情况
     CommonModel *plistModel = [CommonModel yy_modelWithJSON:[[AFDownloader manager] downloadObjectWithUrlString:urlString]];
     
     CommonModel *model = [[CommonModel alloc]init];

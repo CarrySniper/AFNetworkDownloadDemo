@@ -20,7 +20,6 @@ typedef void (^CLDownloaderBlock)(AFDownloadObject *object);
 
 @interface AFDownloader : NSObject
 
-
 /** 最大并发数，0为不限制，默认3 */
 @property (nonatomic, assign) NSInteger maxConcurrentCount;
 
@@ -28,13 +27,12 @@ typedef void (^CLDownloaderBlock)(AFDownloadObject *object);
 @property (nonatomic, strong) AFURLSessionManager *sessionManager;                              // 会话对象
 @property (nonatomic, strong) NSFileManager *fileManager;                                       // 文件管理
 @property (nonatomic, strong) NSString *cachesDirectory;                                        // 文件目录
-@property (nonatomic, strong) NSMutableDictionary<NSString *, AFDownloadObject *> *downloadsSet;// 下载集合
 @property (nonatomic, strong) NSMutableArray<AFDownloadObject *> *downloadingArray;             // 下载中队列
 @property (nonatomic, strong) NSMutableArray<AFDownloadObject *> *waitingArray;                 // 待下载队列
+@property (nonatomic, strong) NSMutableDictionary<NSString *, AFDownloadObject *> *downloadsSet;// 全部下载集合（下载中/待下载/暂停/已下载……）
 
 #pragma mark - Class
 + (instancetype)manager;
-
 
 /**
  获取某条下载数据
@@ -109,14 +107,6 @@ typedef void (^CLDownloaderBlock)(AFDownloadObject *object);
  */
 - (NSString *)formatByteCount:(long long)size;
 
-/**
- 文件是否已下载
- */
-- (BOOL)isDownloadCompleted:(NSString *)urlString;
-
-/**
- 文件已经下载的大小
- */
-- (NSUInteger)downloadedLength:(NSString *)urlString;
-
 @end
+
+
