@@ -27,7 +27,14 @@
         // bytes=-y  ==  head ~ y byte
 		NSString *filePath = [[AFDownloader manager] fileAbsolutePath:urlString];
 		if (directoryPath) {// 替换存放地址
-			filePath = [directoryPath stringByAppendingPathComponent:[filePath lastPathComponent]];
+			BOOL isDirectory = NO;
+			BOOL isExists = [[NSFileManager defaultManager] fileExistsAtPath:directoryPath isDirectory:&isDirectory];
+			if (!isExists || !isDirectory) {
+				NSLog(@"director路径不存在，不加入下载队列。请检测!");
+				return nil;
+			}else{
+				filePath = [directoryPath stringByAppendingPathComponent:[filePath lastPathComponent]];
+			}
 		}
         self.outputStream = [NSOutputStream outputStreamToFileAtPath:filePath append:YES];
 		

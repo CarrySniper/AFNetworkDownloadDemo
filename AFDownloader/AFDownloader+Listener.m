@@ -16,10 +16,9 @@
     __weak typeof(self) weakSelf = self;
     // MARK: 完成会话任务回调
     [self.sessionManager setTaskDidCompleteBlock:^(NSURLSession * _Nonnull session, NSURLSessionTask * _Nonnull task, NSError * _Nullable error) {
-        NSLog(@"setTaskDidCompleteBlock %zd",task.state);
-        
+        NSLog(@"下载结束");
         // Error Domain=NSURLErrorDomain Code=-999 "Canceled/已取消"
-        if (error && error.code == -999) {
+        if ((error && error.code == -999) || task.state == NSURLSessionTaskStateCanceling) {
             return;
         }
         
@@ -58,7 +57,6 @@
     
     // MARK: 接收到请求响应时回调
     [self.sessionManager setDataTaskDidReceiveResponseBlock:^NSURLSessionResponseDisposition(NSURLSession * _Nonnull session, NSURLSessionDataTask * _Nonnull dataTask, NSURLResponse * _Nonnull response) {
-        NSLog(@"setDataTaskDidReceiveResponseBlock %zd",dataTask.state);
         AFDownloadObject *object = weakSelf.downloadsSet[dataTask.taskDescription];
         if (object) {
             // 开启输出
@@ -67,8 +65,6 @@
             object.date = [NSDate date];
             
             // 计算保存已下载大小 expectedContentLength：预计要下载长度 + 已下载文件长度
-//            NSUInteger downloadLength = [weakSelf downloadedLength:object.urlString];
-			
 			NSUInteger downloadLength = [weakSelf downloadLengthPlistWithUrlString:object.urlString];
             NSUInteger totalLength = (long)response.expectedContentLength + downloadLength;
             object.totalLength = totalLength;
